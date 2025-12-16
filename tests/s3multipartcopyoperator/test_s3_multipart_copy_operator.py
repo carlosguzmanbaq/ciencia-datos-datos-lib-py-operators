@@ -18,7 +18,7 @@ class TestS3MultipartCopyOperator(unittest.TestCase):
             dest_bucket_key='dest/file.txt'
         )
 
-    @patch('s3_multipart_copy_operator.S3Hook')
+    @patch('src.airflow_operators.s3_multipart_copy_operator.s3_multipart_copy_operator.S3Hook')
     def test_file_under_5gb_uses_simple_copy(self, mock_s3_hook):
         """Test que archivos <= 5GB usen copy_object simple"""
         mock_client = Mock()
@@ -35,7 +35,7 @@ class TestS3MultipartCopyOperator(unittest.TestCase):
         mock_client.copy_object.assert_called_once()
         mock_client.create_multipart_upload.assert_not_called()
 
-    @patch('s3_multipart_copy_operator.S3Hook')
+    @patch('src.airflow_operators.s3_multipart_copy_operator.s3_multipart_copy_operator.S3Hook')
     def test_file_over_5gb_uses_multipart_copy(self, mock_s3_hook):
         """Test que archivos > 5GB usen multipart copy"""
         mock_client = Mock()
@@ -55,7 +55,7 @@ class TestS3MultipartCopyOperator(unittest.TestCase):
         mock_client.create_multipart_upload.assert_called_once()
         mock_client.complete_multipart_upload.assert_called_once()
 
-    @patch('s3_multipart_copy_operator.S3Hook')
+    @patch('src.airflow_operators.s3_multipart_copy_operator.s3_multipart_copy_operator.S3Hook')
     def test_multipart_copy_error_handling(self, mock_s3_hook):
         """Test manejo de errores en multipart copy con abort_multipart_upload"""
 
@@ -76,7 +76,7 @@ class TestS3MultipartCopyOperator(unittest.TestCase):
             Bucket="dest-bucket", Key="dest/file.txt", UploadId="test-id"
         )
 
-    @patch('s3_multipart_copy_operator.S3Hook')
+    @patch('src.airflow_operators.s3_multipart_copy_operator.s3_multipart_copy_operator.S3Hook')
     def test_verify_integrity_size_mismatch(self, mock_s3_hook):
         """Test error de integridad cuando tamaños no coinciden"""
 
@@ -94,7 +94,7 @@ class TestS3MultipartCopyOperator(unittest.TestCase):
 
         self.assertIn("Error de integridad", str(context.exception))
 
-    @patch('s3_multipart_copy_operator.S3Hook')
+    @patch('src.airflow_operators.s3_multipart_copy_operator.s3_multipart_copy_operator.S3Hook')
     def test_verify_integrity_head_object_error(self, mock_s3_hook):
         """Test error al verificar archivo destino"""
 
@@ -112,7 +112,7 @@ class TestS3MultipartCopyOperator(unittest.TestCase):
 
         self.assertIn("Error verificando archivo destino", str(context.exception))
 
-    @patch('s3_multipart_copy_operator.S3Hook')
+    @patch('src.airflow_operators.s3_multipart_copy_operator.s3_multipart_copy_operator.S3Hook')
     def test_get_file_size_error(self, mock_s3_hook):
         """Test error al obtener tamaño del archivo origen"""
 
@@ -127,7 +127,7 @@ class TestS3MultipartCopyOperator(unittest.TestCase):
 
         self.assertIn("No se puede acceder al archivo origen", str(context.exception))
 
-    @patch('s3_multipart_copy_operator.S3Hook')
+    @patch('src.airflow_operators.s3_multipart_copy_operator.s3_multipart_copy_operator.S3Hook')
     def test_multipart_copy_abort_fails(self, mock_s3_hook):
         """Test que cuando falla abort_multipart_upload, se propague la excepción original"""
 
@@ -147,7 +147,7 @@ class TestS3MultipartCopyOperator(unittest.TestCase):
         self.assertIn("Fallo la copia multipart: Error original", str(context.exception))
         mock_client.abort_multipart_upload.assert_called_once()
 
-    @patch('s3_multipart_copy_operator.S3Hook')
+    @patch('src.airflow_operators.s3_multipart_copy_operator.s3_multipart_copy_operator.S3Hook')
     def test_simple_copy_with_acl_cross_account(self, mock_s3_hook):
         """Test copia simple con ACL para cross-account"""
         operator = S3MultipartCopyOperator(
@@ -176,7 +176,7 @@ class TestS3MultipartCopyOperator(unittest.TestCase):
         self.assertEqual(call_args['Bucket'], 'dest-bucket-cross-account')
         self.assertEqual(call_args['Key'], 'dest/file.txt')
 
-    @patch('s3_multipart_copy_operator.S3Hook')
+    @patch('src.airflow_operators.s3_multipart_copy_operator.s3_multipart_copy_operator.S3Hook')
     def test_multipart_copy_with_acl_cross_account(self, mock_s3_hook):
         """Test copia multipart con ACL para cross-account"""
         operator = S3MultipartCopyOperator(
