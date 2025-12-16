@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from airflow.exceptions import AirflowException
-from src.operators.s3_multipart_copy_operator.s3_multipart_copy_operator import S3MultipartCopyOperator
+from src.airflow_operators.s3_multipart_copy_operator.s3_multipart_copy_operator import S3MultipartCopyOperator
 
 
 class TestS3MultipartCopyOperator(unittest.TestCase):
