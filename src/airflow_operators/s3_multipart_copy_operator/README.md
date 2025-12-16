@@ -1,111 +1,81 @@
 # S3MultipartCopyOperator
 
-El `S3MultipartCopyOperator` es un operador personalizado para copiar objetos S3 de cualquier tamaño de manera eficiente. Utiliza automáticamente el método de copia más apropiado según el tamaño del archivo.
+Operador custom de Airflow para copiar archivos S3 de cualquier tamaño de manera eficiente.
 
-## Features
+## 🎯 Funcionalidad
 
-- Copia automática inteligente basada en tamaño de archivo
-- Copy simple para archivos ≤ 5GB (más rápido)
-- Multipart copy para archivos > 5GB (maneja archivos grandes)
-- Verificación de integridad automática
-- Métricas detalladas de la operación
-- Manejo robusto de errores con limpieza automática
+- **Archivos ≤ 5GB**: Usa `copy_object` simple
+- **Archivos > 5GB**: Usa `multipart copy` automáticamente
+- **Verificación de integridad**: Compara tamaños origen/destino
+- **Soporte cross-account**: ACL policies configurables
+- **Métricas XCom**: Duración, método usado, tamaños
 
-## Parámetros de inicialización
+## 📋 Parámetros
 
-| Parámetro            | Tipo | Descripción                                                          |
-| -------------------- | ---- | -------------------------------------------------------------------- |
-| `source_bucket_name` | str  | Nombre del bucket S3 origen                                          |
-| `source_bucket_key`  | str  | Clave (path) del archivo origen en S3                                |
-| `dest_bucket_name`   | str  | Nombre del bucket S3 destino                                         |
-| `dest_bucket_key`    | str  | Clave (path) del archivo destino en S3                               |
-| `aws_conn_id`        | str  | ID de conexión AWS (predeterminado: 'aws_default')                   |
-| `part_size_mb`       | int  | Tamaño de cada parte en MB para multipart copy (predeterminado: 100) |
-| `acl_policy`         | str  | Política ACL para el archivo destino (opcional)                      |
+| Parámetro | Tipo | Requerido | Descripción |
+|-----------|------|-----------|-------------|
+| `source_bucket_name` | str | ✅ | Bucket origen |
+| `source_bucket_key` | str | ✅ | Key del archivo origen |
+| `dest_bucket_name` | str | ✅ | Bucket destino |
+| `dest_bucket_key` | str | ✅ | Key del archivo destino |
+| `aws_conn_id` | str | ❌ | Conexión AWS (default: aws_default) |
+| `part_size_mb` | int | ❌ | Tamaño de parte en MB (default: 100) |
+| `acl_policy` | str | ❌ | ACL policy para cross-account |
 
-## Estrategias de copia
-
-### 1. Copy Simple (≤ 5GB)
-Para archivos de 5GB o menos, utiliza `copy_object` de S3 que es más rápido y eficiente.
-
-### 2. Multipart Copy (> 5GB)
-Para archivos mayores a 5GB, utiliza multipart copy que:
-- Divide el archivo en partes de 100MB (configurable)
-- Copia cada parte en paralelo
-- Ensambla las partes al final
-- Permite manejar archivos de cualquier tamaño
-
-### Optimización del tamaño de partes
-
-El tamaño de las partes afecta directamente el **throughput** (velocidad de transferencia de datos):
-
-- **100 MB (predeterminado)**: Óptimo para archivos de 5-20 GB
-- **200 MB**: Recomendado para archivos de 20-100 GB - reduce el número total de partes manteniendo buen rendimiento
-- **500 MB**: Para archivos de 100+ GB - partes más grandes mejoran el throughput
-- **1 GB**: Para archivos muy grandes (> 500 GB) - maximiza throughput y minimiza overhead
-
-**Throughput** = Velocidad de transferencia de datos (MB/s). Partes más grandes reducen el overhead de red y mejoran la velocidad total de copia.
-
-## Ejemplo de uso
+## 🚀 Uso
 
 ```python
-from s3_multipart_copy_operator import S3MultipartCopyOperator
+from src.airflow_operators.s3_multipart_copy_operator import S3MultipartCopyOperator
 
-# Copia simple (archivo pequeño)
-copy_small_file = S3MultipartCopyOperator(
-    task_id='copy_small_file',
-    source_bucket_name='source-bucket',
-    source_bucket_key='data/small-file.csv',
-    dest_bucket_name='dest-bucket',
-    dest_bucket_key='backup/small-file.csv',
-    aws_conn_id='aws_default',
+# Copia simple
+copy_task = S3MultipartCopyOperator(
+    task_id='copy_file',
+    source_bucket_name='mi-bucket-origen',
+    source_bucket_key='data/archivo.csv',
+    dest_bucket_name='mi-bucket-destino',
+    dest_bucket_key='backup/archivo.csv'
 )
 
-# Copia multipart (archivo grande)
-copy_large_file = S3MultipartCopyOperator(
-    task_id='copy_large_file',
-    source_bucket_name='source-bucket',
-    source_bucket_key='data/large-file.zip',
-    dest_bucket_name='dest-bucket',
-    dest_bucket_key='backup/large-file.zip',
-    part_size_mb=500,  # Partes de 500MB para archivos grandes
-    acl_policy='bucket-owner-full-control',  # Política ACL opcional
-    aws_conn_id='aws_default',
+# Copia cross-account con ACL
+copy_cross_account = S3MultipartCopyOperator(
+    task_id='copy_cross_account',
+    source_bucket_name='bucket-cuenta-a',
+    source_bucket_key='data/archivo-grande.zip',
+    dest_bucket_name='bucket-cuenta-b',
+    dest_bucket_key='data/archivo-grande.zip',
+    acl_policy='bucket-owner-full-control',
+    part_size_mb=200
 )
 ```
 
-## Métricas XCom
+## 📊 Métricas XCom
 
-El operador almacena métricas detalladas en XCom bajo la clave `copy_metrics`:
+El operador genera métricas en XCom con key `copy_metrics`:
 
 ```python
 {
-    "source_size_bytes": 1073741824,
-    "dest_size_bytes": 1073741824,
-    "duration_seconds": 45.67,
-    "copy_method": "copy_object",
-    "source_path": "s3://source-bucket/data/file.zip",
-    "dest_path": "s3://dest-bucket/backup/file.zip"
+    "source_size_bytes": 7516192768,
+    "dest_size_bytes": 7516192768,
+    "duration_seconds": 45.23,
+    "copy_method": "create_multipart_upload",
+    "source_path": "s3://origen/archivo.zip",
+    "dest_path": "s3://destino/archivo.zip"
 }
 ```
 
-## Verificación de integridad
+## ⚠️ Consideraciones
 
-El operador verifica automáticamente que:
-- El archivo destino existe
-- El tamaño del archivo destino coincide exactamente con el origen
-- Lanza `AirflowException` si hay discrepancias
+- **Permisos**: Requiere `s3:GetObject` en origen y `s3:PutObject` en destino
+- **Cross-account**: Usar `acl_policy='bucket-owner-full-control'`
+- **Archivos grandes**: Ajustar `part_size_mb` según necesidades
+- **Timeouts**: Considerar timeouts de Airflow para archivos muy grandes
 
-## Manejo de errores
+## 🧪 Testing
 
-- **Archivo origen no encontrado**: Lanza excepción inmediatamente
-- **Error en multipart copy**: Ejecuta `abort_multipart_upload` para limpiar partes incompletas
-- **Error de integridad**: Lanza excepción con detalles del problema
-- **Errores de AWS**: Propaga excepciones específicas de boto3
+```bash
+# Tests específicos del operador
+pytest tests/s3multipartcopyoperator/ -v
 
-## Dependencias
-
-- Apache Airflow
-- Amazon S3
-- boto3 (AWS SDK para Python)
-- Permisos S3: `s3:GetObject`, `s3:PutObject`, `s3:AbortMultipartUpload`
+# Con cobertura
+pytest tests/s3multipartcopyoperator/ --cov=src/airflow_operators/s3_multipart_copy_operator --cov-report=html
+```
