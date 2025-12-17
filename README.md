@@ -18,6 +18,32 @@ Copia archivos S3 de cualquier tamaño usando copy simple (≤5GB) o multipart c
 - **Casos de uso**: Migración de datos, backup, replicación cross-account
 - **Características**: Verificación de integridad, soporte ACL, métricas XCom
 
+### FileFerryOperator
+Ejecuta operaciones de transferencia de archivos entre S3 y SFTP mediante Lambda File Ferry.
+- **Ubicación**: `src/airflow_operators/file_ferry_operator/`
+- **Casos de uso**: Upload/download S3↔SFTP, gestión de archivos remotos, sincronización de datos
+- **Características**: Múltiples operaciones (upload, download, delete, list_directory, get_status), configuración por ambiente, manejo de listas de archivos
+
+## 🔍 Sensores Disponibles
+
+### FileFerryTransferSensor
+Monitorea el estado de transferencias FileFerry hasta alcanzar un estado específico.
+- **Ubicación**: `src/airflow_sensors/file_ferry_sensor/`
+- **Casos de uso**: Esperar completación de transferencias, validar estados de archivos
+- **Características**: Soporte múltiples estados esperados, configuración de timeouts, manejo de errores
+
+### FileFerryCompletionSensor
+Sensor especializado para esperar completación de transferencias (hereda de FileFerryTransferSensor).
+- **Ubicación**: `src/airflow_sensors/file_ferry_sensor/`
+- **Casos de uso**: Validar finalización exitosa de uploads/downloads
+- **Características**: Estados predeterminados (COMPLETED, PARTIALLY_COMPLETED, FAILED), falla automática en errores
+
+### FileFerryFailureSensor
+Sensor especializado para detectar fallos en transferencias (hereda de FileFerryTransferSensor).
+- **Ubicación**: `src/airflow_sensors/file_ferry_sensor/`
+- **Casos de uso**: Detectar y manejar transferencias fallidas
+- **Características**: Estado esperado FAILED, no falla automáticamente
+
 ## 🧪 Testing
 
 ```bash
@@ -38,9 +64,13 @@ tree -I 'virtual|__pycache__|*.pyc|*.pyo|*.egg-info|.pytest_cache|*.egg|dist|bui
 ```
 
 ```bash
+.
 ├── README.md
 ├── examples
 │   └── dags
+│       ├── file_ferry
+│       │   ├── download
+│       │   └── upload
 │       └── s3_multipart_copy_operator
 │           ├── docs
 │           └── s3_multipart_copy_operator.py
@@ -50,14 +80,26 @@ tree -I 'virtual|__pycache__|*.pyc|*.pyo|*.egg-info|.pytest_cache|*.egg|dist|bui
 │   ├── __init__.py
 │   ├── airflow_operators
 │   │   ├── __init__.py
+│   │   ├── file_ferry_operator
+│   │   │   ├── README.md
+│   │   │   ├── __init__.py
+│   │   │   └── file_ferry_operator.py
 │   │   └── s3_multipart_copy_operator
 │   │       ├── README.md
 │   │       ├── __init__.py
 │   │       └── s3_multipart_copy_operator.py
 │   └── airflow_sensors
-│       └── __init__.py
+│       ├── __init__.py
+│       └── file_ferry_sensor
+│           ├── README.md
+│           ├── __init__.py
+│           └── file_ferry_sensor.py
 └── tests
     ├── __init__.py
+    ├── file_ferry
+    │   ├── __init__.py
+    │   ├── test_file_ferry_operator.py
+    │   └── test_file_ferry_sensor.py
     └── test_s3_multipart_copy_operator
         ├── __init__.py
         └── test_s3_multipart_copy_operator.py
