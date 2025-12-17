@@ -48,5 +48,6 @@ Thumbs.db
 
 # Env Virtual
 virtual
+.venv
 
 .amazonq
